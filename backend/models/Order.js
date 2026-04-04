@@ -70,7 +70,26 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
       default: 'pending',
+      alias: 'status',
     },
+    trackingHistory: [
+      {
+        status: {
+          type: String,
+          enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
+          required: true,
+        },
+        location: {
+          type: String,
+          default: 'Unknown location',
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        note: String,
+      },
+    ],
     shippingAddress: {
       firstName: String,
       lastName: String,
@@ -106,5 +125,14 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 )
+
+orderSchema.virtual('status').get(function () {
+  return this.orderStatus
+}).set(function (value) {
+  this.orderStatus = value
+})
+
+orderSchema.set('toJSON', { virtuals: true })
+orderSchema.set('toObject', { virtuals: true })
 
 export default mongoose.model('Order', orderSchema)

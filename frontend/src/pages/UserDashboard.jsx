@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useStore } from '../store/useStore'
 import { useNavigate } from 'react-router-dom'
-import { Package, Heart, LogOut, User, MapPin, Clock, CheckCircle, Truck, AlertCircle, Bell } from 'lucide-react'
+import { Package, Heart, LogOut, User, Clock, CheckCircle, Truck, AlertCircle, Bell } from 'lucide-react'
 import { orderService } from '../services/api'
+import TrackingTimeline from '../components/TrackingTimeline'
+import { connectSocket, subscribeToOrderStatus } from '../services/socket'
 
 export default function UserDashboard() {
   const { user, logout } = useStore()
@@ -22,11 +24,40 @@ export default function UserDashboard() {
     }
   }, [activeTab])
 
+  useEffect(() => {
+    if (!user?.id) return
+
+    connectSocket(user.id)
+    const cleanup = subscribeToOrderStatus((payload) => {
+      if (!payload) return
+      const status = payload.status || payload.order?.orderStatus
+      const orderId = payload.orderId || payload.order?.orderId
+      if (orderId && status) {
+        addNotification(`Your order ${orderId} has been ${status}`)
+        fetchOrders()
+      }
+    })
+
+    return cleanup
+  }, [user])
+
+  const addNotification = (message) => {
+    const notification = {
+      id: Date.now(),
+      message,
+      type: 'success',
+    }
+    setNotifications((prev) => [notification, ...prev])
+    setTimeout(() => {
+      setNotifications((prev) => prev.filter((item) => item.id !== notification.id))
+    }, 4000)
+  }
+
   const fetchOrders = async () => {
     try {
       setLoading(true)
       const response = await orderService.getOrders()
-      setOrders(response.data?.orders || response.orders || [])
+      setOrders(Array.isArray(response) ? response : response.data?.orders || response.orders || [])
     } catch (error) {
       console.error('Failed to fetch orders:', error)
     } finally {
@@ -118,6 +149,20 @@ export default function UserDashboard() {
 
         {/* Main Content */}
         <div className="lg:col-span-3">
+          {notifications.length > 0 && (
+            <div className="fixed top-20 right-4 z-50 space-y-2">
+              {notifications.map((notif) => (
+                <div
+                  key={notif.id}
+                  className="flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg bg-green-600 text-white"
+                >
+                  <Bell size={18} />
+                  <span>{notif.message}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Orders */}
           {activeTab === 'orders' && (
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 card-shadow">
@@ -156,31 +201,8 @@ export default function UserDashboard() {
                           <span className="capitalize">{order.orderStatus || 'unknown'}</span>
                         </div>
                       </div>
-                      
-                      {/* Order Status Timeline */}
-                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-between text-xs">
-                          <div className={`flex flex-col items-center ${['pending', 'processing', 'shipped', 'delivered'].indexOf(order.orderStatus?.toLowerCase()) >= 0 ? 'text-blue-600' : 'text-gray-400'}`}>
-                            <AlertCircle size={16} />
-                            <span className="mt-1">Pending</span>
-                          </div>
-                          <div className="flex-1 h-0.5 mx-1 bg-gray-300"></div>
-                          <div className={`flex flex-col items-center ${['processing', 'shipped', 'delivered'].indexOf(order.orderStatus?.toLowerCase()) >= 0 ? 'text-yellow-600' : 'text-gray-400'}`}>
-                            <Clock size={16} />
-                            <span className="mt-1">Processing</span>
-                          </div>
-                          <div className="flex-1 h-0.5 mx-1 bg-gray-300"></div>
-                          <div className={`flex flex-col items-center ${['shipped', 'delivered'].indexOf(order.orderStatus?.toLowerCase()) >= 0 ? 'text-blue-600' : 'text-gray-400'}`}>
-                            <Truck size={16} />
-                            <span className="mt-1">Shipped</span>
-                          </div>
-                          <div className="flex-1 h-0.5 mx-1 bg-gray-300"></div>
-                          <div className={`flex flex-col items-center ${order.orderStatus?.toLowerCase() === 'delivered' ? 'text-green-600' : 'text-gray-400'}`}>
-                            <CheckCircle size={16} />
-                            <span className="mt-1">Delivered</span>
-                          </div>
-                        </div>
-                      </div>
+
+                      <TrackingTimeline history={order.trackingHistory || []} currentStatus={order.orderStatus} />
                     </div>
                   ))}
                 </div>

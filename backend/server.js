@@ -1,6 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
+import http from 'http'
+import { Server } from 'socket.io'
 import { fileURLToPath } from 'url'
 import { config } from './config/config.js'
 import { connectDB } from './config/database.js'
@@ -60,12 +62,38 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = config.PORT
+const server = http.createServer(app)
+const io = new Server(server, {
+  cors: {
+    origin: config.CORS_ORIGIN,
+    methods: ['GET', 'POST', 'PUT', 'PATCH'],
+    credentials: true,
+  },
+})
+
+app.set('io', io)
+
+io.on('connection', (socket) => {
+  console.log('[Socket] connected', socket.id)
+
+  socket.on('joinUser', ({ userId }) => {
+    if (userId) {
+      const room = `user_${userId}`
+      socket.join(room)
+      console.log(`[Socket] user joined room: ${room}`)
+    }
+  })
+
+  socket.on('disconnect', () => {
+    console.log('[Socket] disconnected', socket.id)
+  })
+})
 
 async function start() {
   try {
     await connectDB()
     
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`)
       console.log(`Environment: ${config.NODE_ENV}`)
     })

@@ -1,8 +1,10 @@
 import express from 'express'
+import mongoose from 'mongoose'
 import Product from '../models/Product.js'
 import Order from '../models/Order.js'
 import User from '../models/User.js'
 import jwt from 'jsonwebtoken'
+import { updateOrderStatus } from '../controllers/orderController.js'
 
 const router = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -217,16 +219,27 @@ router.get('/orders', verifyToken, async (req, res) => {
     // Manually populate user, product, and delivery boy data
     const populatedOrders = await Promise.all(
       orders.map(async (order) => {
-        const user = await User.findById(order.user).select('name email phone').lean()
-        const deliveryBoy = order.deliveryBoy 
+        const user = mongoose.isValidObjectId(order.user)
+          ? await User.findById(order.user).select('name email phone').lean()
+          : null
+
+        const deliveryBoy = order.deliveryBoy && mongoose.isValidObjectId(order.deliveryBoy)
           ? await User.findById(order.deliveryBoy).select('name email phone').lean()
           : null
+
         const itemsWithProducts = await Promise.all(
           order.items.map(async (item) => {
-            const product = await Product.findById(item.product).select('name price').lean()
-            return { ...item, product }
+            let product = null
+            if (mongoose.isValidObjectId(item.product)) {
+              product = await Product.findById(item.product).select('name price').lean()
+            }
+            return {
+              ...item,
+              product: product || { id: item.product, name: 'Unknown product', price: item.price || 0 },
+            }
           })
         )
+
         return { ...order, user, items: itemsWithProducts, deliveryBoy }
       })
     )
@@ -334,45 +347,6 @@ router.patch('/orders/:id/assign-delivery-boy', verifyToken, async (req, res) =>
 })
 
 // Update order status
-router.patch('/orders/:id/status', verifyToken, async (req, res) => {
-  try {
-    const { status } = req.body
-    const orderId = req.params.id
-
-    // Validate status
-    const validStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' })
-    }
-
-    // Update order
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      {
-        orderStatus: status,
-        $push: {
-          statusHistory: {
-            status,
-            timestamp: new Date(),
-          },
-        },
-      },
-      { new: true }
-    )
-      .populate('user', 'name email phone')
-      .populate('deliveryBoy', 'name email phone')
-
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' })
-    }
-
-    res.json({
-      message: 'Order status updated successfully',
-      order,
-    })
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
-  }
-})
+router.patch('/orders/:id/status', verifyToken, updateOrderStatus)
 
 export default router

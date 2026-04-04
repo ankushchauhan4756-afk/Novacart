@@ -282,6 +282,14 @@ router.post('/verify', verifyToken, async (req, res) => {
       couponCode,
       orderStatus: 'confirmed',
       paymentStatus: 'completed',
+      trackingHistory: [
+        {
+          status: 'confirmed',
+          location: 'Order confirmed',
+          timestamp: new Date(),
+          note: 'Payment verified',
+        },
+      ],
       razorpayPaymentId: razorpay_payment_id,
       razorpayOrderId: razorpay_order_id,
       transactionId: razorpay_payment_id,

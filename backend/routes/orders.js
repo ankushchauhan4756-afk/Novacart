@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import Order from '../models/Order.js'
 import Cart from '../models/Cart.js'
 import jwt from 'jsonwebtoken'
+import { updateOrderStatus } from '../controllers/orderController.js'
 
 const router = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -117,6 +118,14 @@ router.post('/', verifyToken, async (req, res) => {
       couponCode,
       orderStatus: 'pending',
       paymentStatus: 'pending',
+      trackingHistory: [
+        {
+          status: 'pending',
+          location: 'Order placed',
+          timestamp: new Date(),
+          note: 'Order created',
+        },
+      ],
     })
 
     console.log('[ORDER CREATE] Saving order:', orderId)
@@ -176,29 +185,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 })
 
 // Update order status (admin only)
-router.put('/:id/status', verifyToken, async (req, res) => {
-  try {
-    const { status } = req.body
-
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      {
-        orderStatus: status,
-        $push: {
-          statusHistory: {
-            status,
-            timestamp: new Date(),
-          },
-        },
-      },
-      { new: true }
-    )
-
-    res.json(order)
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
-  }
-})
+router.put('/:id/status', verifyToken, updateOrderStatus)
 
 // Cancel order
 router.post('/:id/cancel', verifyToken, async (req, res) => {

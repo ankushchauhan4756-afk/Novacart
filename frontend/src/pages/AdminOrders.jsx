@@ -10,6 +10,7 @@ export default function AdminOrders() {
   const [deliveryBoys, setDeliveryBoys] = useState([])
   const [selectedDeliveryBoy, setSelectedDeliveryBoy] = useState(null)
   const [notifications, setNotifications] = useState([])
+  const [fetchError, setFetchError] = useState('')
   const { user } = useStore()
 
   const statusStages = ['pending', 'confirmed', 'processing', 'shipped', 'delivered']
@@ -22,15 +23,20 @@ export default function AdminOrders() {
   const fetchOrders = async () => {
     try {
       setLoading(true)
+      setFetchError('')
       console.log('Fetching orders from /admin/orders...')
       const response = await orderService.getAllOrders()
       console.log('Full response received:', response)
       console.log('Response.orders:', response.orders)
       console.log('Orders array length:', response.orders?.length)
       setOrders(response.orders || [])
+      if (!response.orders || response.orders.length === 0) {
+        setFetchError('No orders found. Please ensure orders are created in the database.')
+      }
     } catch (error) {
       console.error('Failed to fetch orders:', error)
       console.error('Error details:', error.response?.data)
+      setFetchError(error.response?.data?.message || 'Failed to load orders')
       setOrders([])
     } finally {
       setLoading(false)
@@ -216,7 +222,9 @@ export default function AdminOrders() {
       {orders.length === 0 ? (
         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-12 text-center">
           <AlertCircle size={48} className="mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-600 dark:text-gray-400">No orders found</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            {fetchError || 'No orders found'}
+          </p>
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">

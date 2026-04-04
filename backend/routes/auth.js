@@ -12,9 +12,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 router.post('/register', async (req, res) => {
   try {
     const { name, email, phone, password } = req.body
+    const normalizedEmail = email?.trim().toLowerCase()
+
+    if (!name || !normalizedEmail || !phone || !password) {
+      return res.status(400).json({ message: 'All fields are required' })
+    }
 
     // Check if user exists
-    let user = await User.findOne({ email })
+    let user = await User.findOne({ email: normalizedEmail })
     if (user) {
       return res.status(400).json({ message: 'User already exists' })
     }
@@ -26,7 +31,7 @@ router.post('/register', async (req, res) => {
     // Create user
     user = new User({
       name,
-      email,
+      email: normalizedEmail,
       phone,
       password: hashedPassword,
     })
@@ -58,17 +63,22 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
+    const normalizedEmail = email?.trim().toLowerCase()
+
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ message: 'Email and password are required' })
+    }
 
     // Check if user exists
-    const user = await User.findOne({ email })
+    const user = await User.findOne({ email: normalizedEmail })
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' })
+      return res.status(401).json({ message: 'Invalid email or password' })
     }
 
     // Check password
     const isMatch = await bcryptjs.compare(password, user.password)
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' })
+      return res.status(401).json({ message: 'Invalid email or password' })
     }
 
     // Create JWT token

@@ -169,7 +169,7 @@ export const orderService = {
   },
 
   updateOrderStatus: async (id, status) => {
-    const { data } = await api.patch(`/admin/orders/${id}/status`, { status })
+    const { data } = await api.put(`/orders/${id}/status`, { status })
     return data
   },
 

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useStore } from './store/useStore'
+import { authService } from './services/api'
+import { connectSocket, disconnectSocket } from './services/socket'
 import './index.css'
 
 // Layouts
@@ -23,26 +25,25 @@ import AdminOrders from './pages/AdminOrders'
 import NotFound from './pages/NotFound'
 
 function App() {
-  const { isDarkMode, toggleDarkMode, user } = useStore()
+  const { isDarkMode, toggleDarkMode, user, setUser } = useStore()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Initialize app
     const initializeApp = async () => {
       try {
-        // Check if user is logged in
         const token = localStorage.getItem('token')
         if (token) {
-          // Validate token with backend - allow mock tokens in development
-          if (token.startsWith('mock-token-')) {
-            console.log('Using mock token')
-          } else {
-            const response = await fetch('http://localhost:5000/auth/verify', {
-              headers: { Authorization: `Bearer ${token}` }
-            })
-            if (!response.ok) {
+          try {
+            const response = await authService.verify()
+            if (response.valid && response.user) {
+              setUser(response.user)
+            } else {
               localStorage.removeItem('token')
             }
+          } catch (error) {
+            console.error('Token verification failed:', error)
+            localStorage.removeItem('token')
           }
         }
       } catch (error) {
@@ -54,6 +55,14 @@ function App() {
 
     initializeApp()
   }, [])
+
+  useEffect(() => {
+    if (user?.id) {
+      connectSocket(user.id)
+    } else {
+      disconnectSocket()
+    }
+  }, [user])
 
   useEffect(() => {
     if (isDarkMode) {

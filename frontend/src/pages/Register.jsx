@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
+import { authService } from '../services/api'
 import { Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react'
 
 export default function Register() {
@@ -59,19 +60,19 @@ export default function Register() {
     }
 
     try {
-      // Mock registration
-      const mockUser = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        isAdmin: false,
-      }
-      setUser(mockUser)
-      setToken('mock-token-new-user')
+      const response = await authService.register({
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim(),
+        password: formData.password,
+      })
+
+      setUser(response.user)
+      setToken(response.token)
       navigate('/')
     } catch (error) {
-      setError('Registration failed. Please try again.')
+      const backendMessage = error.response?.data?.message
+      setError(backendMessage || 'Registration failed. Please try again.')
     } finally {
       setLoading(false)
     }

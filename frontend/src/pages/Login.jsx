@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
+import { authService } from '../services/api'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
@@ -28,37 +29,24 @@ export default function Login() {
     setLoading(true)
     setError('')
 
+    if (!formData.email || !formData.password) {
+      setError('Please enter both email and password')
+      setLoading(false)
+      return
+    }
+
     try {
-      // Mock login
-      if (formData.email === 'admin@novacart.com' && formData.password === 'admin123') {
-        const mockUser = {
-          id: '1',
-          name: 'Admin User',
-          email: formData.email,
-          isAdmin: true,
-        }
-        const token = 'mock-token-admin'
-        setUser(mockUser)
-        setToken(token)
-        localStorage.setItem('token', token)
-        navigate('/admin')
-      } else if (formData.email && formData.password) {
-        const mockUser = {
-          id: '2',
-          name: 'John Doe',
-          email: formData.email,
-          isAdmin: false,
-        }
-        const token = 'mock-token-user'
-        setUser(mockUser)
-        setToken(token)
-        localStorage.setItem('token', token)
-        navigate('/')
-      } else {
-        setError('Please enter valid credentials')
-      }
+      const response = await authService.login({
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+      })
+
+      setUser(response.user)
+      setToken(response.token)
+      navigate(response.user.isAdmin ? '/admin' : '/')
     } catch (error) {
-      setError('Login failed. Please try again.')
+      const backendMessage = error.response?.data?.message
+      setError(backendMessage || 'Invalid email or password')
     } finally {
       setLoading(false)
     }
