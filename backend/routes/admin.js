@@ -41,6 +41,20 @@ const verifyToken = (req, res, next) => {
   }
 }
 
+// Test endpoint - Verify admin auth
+router.get('/test/verify-admin', verifyToken, async (req, res) => {
+  try {
+    console.log('Admin verification test - User:', req.user)
+    res.json({
+      message: 'Admin verified',
+      user: req.user,
+      isAdmin: req.user.isAdmin,
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Dashboard stats
 router.get('/stats', verifyToken, async (req, res) => {
   try {
@@ -52,6 +66,8 @@ router.get('/stats', verifyToken, async (req, res) => {
       { $group: { _id: null, total: { $sum: '$total' } } },
     ])
 
+    console.log('Dashboard Stats - Total Orders:', totalOrders, 'Total Users:', totalUsers, 'Total Products:', totalProducts)
+
     res.json({
       totalOrders,
       totalUsers,
@@ -60,6 +76,48 @@ router.get('/stats', verifyToken, async (req, res) => {
     })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
+
+// Test endpoint - Check orders count
+router.get('/test/count-orders', async (req, res) => {
+  try {
+    console.log('=== Checking order count in database ===')
+    const count = await Order.countDocuments()
+    const orders = await Order.find().select('orderId user items total orderStatus paymentStatus createdAt').lean()
+    
+    console.log('Total orders:', count)
+    console.log('Order details:', orders)
+    
+    res.json({
+      message: 'Order count check',
+      totalOrders: count,
+      orders: orders,
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Debug endpoint - Check orders in database
+router.get('/debug/check-orders', verifyToken, async (req, res) => {
+  try {
+    console.log('=== DEBUG: Checking Orders in Database ===')
+    
+    const allOrders = await Order.find().select('orderId orderStatus user items total createdAt').lean()
+    const orderCount = await Order.countDocuments()
+    
+    console.log('Total orders in DB:', orderCount)
+    console.log('Orders:', allOrders)
+    
+    res.json({
+      message: 'Debug check',
+      totalOrders: orderCount,
+      orders: allOrders,
+    })
+  } catch (error) {
+    console.error('Debug check error:', error)
+    res.status(500).json({ message: 'Debug error', error: error.message })
   }
 })
 
@@ -145,11 +203,16 @@ router.get('/orders', verifyToken, async (req, res) => {
     let filter = {}
     if (status) filter.orderStatus = status
 
+    console.log('Admin orders request - Filter:', filter, 'Page:', page, 'Limit:', limit)
+
     const orders = await Order.find(filter)
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit))
       .lean()
+
+    console.log('Orders found from DB:', orders.length)
+    console.log('First order sample:', orders[0])
 
     // Manually populate user, product, and delivery boy data
     const populatedOrders = await Promise.all(
@@ -169,6 +232,9 @@ router.get('/orders', verifyToken, async (req, res) => {
     )
 
     const total = await Order.countDocuments(filter)
+
+    console.log('Total orders in DB:', total)
+    console.log('Returning populated orders:', populatedOrders.length)
 
     res.json({
       orders: populatedOrders,

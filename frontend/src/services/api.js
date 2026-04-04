@@ -1,10 +1,12 @@
 import axios from 'axios'
 
-const API_BASE = 'http://localhost:5000'
+const API_BASE = import.meta.env.DEV ? '/api' : 'http://localhost:5000'
 
 const api = axios.create({
   baseURL: API_BASE,
 })
+
+console.log('[API] Base URL:', API_BASE)
 
 // Add token to requests
 api.interceptors.request.use((config) => {
@@ -189,13 +191,13 @@ export const orderService = {
 
 // Payment Service
 export const paymentService = {
-  initiatePayment: async (orderId, amount) => {
-    const { data } = await api.post('/payments/initiate', { orderId, amount })
+  createOrder: async (amount, currency = 'INR', receipt) => {
+    const { data } = await api.post('/payments/create-order', { amount, currency, receipt })
     return data
   },
 
-  verifyPayment: async (paymentId, orderId) => {
-    const { data } = await api.post('/payments/verify', { paymentId, orderId })
+  verifyPayment: async (paymentData) => {
+    const { data } = await api.post('/payments/verify', paymentData)
     return data
   },
 

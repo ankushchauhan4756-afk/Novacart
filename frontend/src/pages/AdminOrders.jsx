@@ -22,11 +22,15 @@ export default function AdminOrders() {
   const fetchOrders = async () => {
     try {
       setLoading(true)
+      console.log('Fetching orders from /admin/orders...')
       const response = await orderService.getAllOrders()
-      console.log('Orders response:', response)
+      console.log('Full response received:', response)
+      console.log('Response.orders:', response.orders)
+      console.log('Orders array length:', response.orders?.length)
       setOrders(response.orders || [])
     } catch (error) {
       console.error('Failed to fetch orders:', error)
+      console.error('Error details:', error.response?.data)
       setOrders([])
     } finally {
       setLoading(false)

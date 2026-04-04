@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
-import { orderService } from '../services/api'
+import { orderService, paymentService } from '../services/api'
 import { formatPrice } from '../utils/helpers'
-import { ChevronDown, MapPin, Phone, Mail } from 'lucide-react'
+import { ChevronDown, MapPin, Phone, Mail, Loader } from 'lucide-react'
 
 export default function Checkout() {
   const navigate = useNavigate()
@@ -18,9 +18,11 @@ export default function Checkout() {
     city: '',
     state: '',
     pincode: '',
-    paymentMethod: 'card',
+    paymentMethod: 'razorpay',
   })
 
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [paymentError, setPaymentError] = useState(null)
   const total = getCartTotal()
 
   const handleInputChange = (e) => {
@@ -38,11 +40,14 @@ export default function Checkout() {
       return
     }
 
+    setIsProcessingPayment(true)
+    setPaymentError(null)
+
     try {
-      console.log('Token from localStorage:', localStorage.getItem('token'))
-      console.log('User from store:', user)
-      
-      // Create order payload
+      // Calculate total amount
+      const total = getCartTotal()
+
+      // Create order data for payment verification
       const orderData = {
         items: cart.map(item => ({
           product: item.id,
@@ -63,31 +68,121 @@ export default function Checkout() {
         paymentMethod: formData.paymentMethod,
       }
 
-      console.log('Sending order data:', orderData)
-      
-      // Create order via API
-      const response = await orderService.createOrder(orderData)
-      
-      if (response.order) {
-        // Clear cart and redirect to success
-        clearCart()
-        navigate(`/order-success/${response.order.orderId}`, {
-          state: {
-            order: {
-              id: response.order.orderId,
-              total: response.order.total,
-              items: response.order.items.length,
-              date: response.order.createdAt,
-              status: response.order.orderStatus,
-              address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.pincode}`,
-            },
-          },
-        })
+      // Create Razorpay order
+      const paymentResponse = await paymentService.createOrder(total, 'INR', `order_${Date.now()}`)
+
+      if (!paymentResponse.success) {
+        throw new Error(paymentResponse.message || 'Failed to create payment order')
       }
+
+      const { order, keyId, mock } = paymentResponse
+
+      if (mock) {
+        const verifyResponse = await paymentService.verifyPayment({
+          razorpay_order_id: order.id,
+          razorpay_payment_id: `mock_payment_${Date.now()}`,
+          razorpay_signature: 'mock_signature',
+          orderData,
+          mock: true,
+        })
+
+        if (verifyResponse.success) {
+          clearCart()
+          navigate(`/order-success/${verifyResponse.order.orderId}`, {
+            state: {
+              order: {
+                id: verifyResponse.order.orderId,
+                total: verifyResponse.order.total,
+                items: verifyResponse.order.items.length,
+                date: verifyResponse.order.createdAt,
+                status: verifyResponse.order.orderStatus,
+                address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.pincode}`,
+              },
+            },
+          })
+          return
+        }
+
+        throw new Error(verifyResponse.message || 'Mock payment verification failed')
+      }
+
+      if (!window.Razorpay) {
+        throw new Error('Razorpay checkout script not loaded. Please refresh the page.')
+      }
+
+      // Initialize Razorpay checkout
+      const options = {
+        key: keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'NovaCart',
+        description: 'Purchase from NovaCart',
+        order_id: order.id,
+        handler: async function (response) {
+          try {
+            console.log('Razorpay payment successful! Response:', response)
+            // Verify payment on backend
+            const verifyResponse = await paymentService.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderData: orderData,
+            })
+
+            console.log('Backend verify response:', verifyResponse)
+
+            if (verifyResponse.success) {
+              console.log('Order created successfully! Order ID:', verifyResponse.order.orderId)
+              // Clear cart and redirect to success
+              clearCart()
+              navigate(`/order-success/${verifyResponse.order.orderId}`, {
+                state: {
+                  order: {
+                    id: verifyResponse.order.orderId,
+                    total: verifyResponse.order.total,
+                    items: verifyResponse.order.items.length,
+                    date: verifyResponse.order.createdAt,
+                    status: verifyResponse.order.orderStatus,
+                    address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.pincode}`,
+                  },
+                },
+              })
+            } else {
+              console.log('Verification failed:', verifyResponse.message)
+              setPaymentError('Payment verification failed. Please contact support.')
+            }
+          } catch (error) {
+            console.error('Payment verification error:', error)
+            console.error('Error response:', error.response?.data)
+            setPaymentError('Payment verification failed. Please try again.')
+          } finally {
+            setIsProcessingPayment(false)
+          }
+        },
+        prefill: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          contact: formData.phone,
+        },
+        theme: {
+          color: '#3B82F6', // Primary blue color
+        },
+        modal: {
+          ondismiss: function() {
+            setIsProcessingPayment(false)
+            setPaymentError('Payment was cancelled.')
+          }
+        }
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.open()
+
     } catch (error) {
-      console.error('Order creation error:', error)
-      console.error('Error details:', error.response?.data || error.message)
-      alert(`Failed to place order: ${error.response?.data?.message || error.message}`)
+      console.error('Payment initiation error:', error)
+      const backendMessage = error.response?.data?.message || error.response?.data?.error
+      setPaymentError(backendMessage || error.message || 'Failed to initiate payment')
+      setIsProcessingPayment(false)
     }
   }
 
@@ -100,7 +195,7 @@ export default function Checkout() {
         <div className="lg:col-span-2">
           {/* Steps */}
           <div className="flex gap-4 mb-8">
-            {[1, 2, 3].map((s) => (
+            {[1, 2].map((s) => (
               <div key={s} className="flex items-center gap-2">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
@@ -111,7 +206,7 @@ export default function Checkout() {
                 >
                   {s}
                 </div>
-                {s < 3 && (
+                {s < 2 && (
                   <div
                     className={`h-1 w-8 ${
                       step > s
@@ -236,52 +331,13 @@ export default function Checkout() {
                 onClick={() => setStep(2)}
                 className="mt-6 w-full btn-primary"
               >
-                Continue to Payment
+                Continue to Review
               </button>
             </div>
           )}
 
-          {/* Step 2: Payment */}
+          {/* Step 2: Review */}
           {step === 2 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 card-shadow">
-              <h2 className="text-xl font-bold mb-6">Payment Method</h2>
-              <div className="space-y-4">
-                {['card', 'upi', 'netbanking'].map((method) => (
-                  <label key={method} className="flex items-center p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-primary-500 transition">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={method}
-                      checked={formData.paymentMethod === method}
-                      onChange={handleInputChange}
-                      className="mr-3"
-                    />
-                    <div className="flex-1">
-                      <p className="font-semibold capitalize">{method === 'card' ? 'Credit/Debit Card' : method === 'upi' ? 'UPI' : 'Net Banking'}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              <div className="mt-6 space-x-4 flex">
-                <button
-                  onClick={() => setStep(1)}
-                  className="flex-1 btn-secondary"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={() => setStep(3)}
-                  className="flex-1 btn-primary"
-                >
-                  Review Order
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Review */}
-          {step === 3 && (
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 card-shadow">
               <h2 className="text-xl font-bold mb-6">Order Review</h2>
 
@@ -308,18 +364,32 @@ export default function Checkout() {
 
               <div className="mt-6 space-x-4 flex">
                 <button
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(1)}
                   className="flex-1 btn-secondary"
                 >
                   Back
                 </button>
                 <button
                   onClick={handlePlaceOrder}
-                  className="flex-1 btn-primary"
+                  disabled={isProcessingPayment}
+                  className="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Place Order
+                  {isProcessingPayment ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader size={20} className="animate-spin" />
+                      Processing Payment...
+                    </div>
+                  ) : (
+                    'Place Order & Pay'
+                  )}
                 </button>
               </div>
+
+              {paymentError && (
+                <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-red-600 dark:text-red-400 text-sm">{paymentError}</p>
+                </div>
+              )}
             </div>
           )}
         </div>

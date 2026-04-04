@@ -11,6 +11,7 @@ export const config = {
   // Razorpay
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+  RAZORPAY_MOCK_MODE: process.env.RAZORPAY_MOCK_MODE === 'true',
 
   // Email
   EMAIL_HOST: process.env.EMAIL_HOST,
