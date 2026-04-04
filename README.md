@@ -153,6 +153,28 @@ http://localhost:3000
 
 ---
 
+## 🚢 Deployment with Docker
+
+This repository now includes Docker configuration for production-style deployment.
+
+### Run with Docker Compose
+```bash
+# Build and start services
+docker compose up --build
+```
+
+### Services
+- Frontend: http://localhost
+- Backend: http://localhost:5000
+- MongoDB: mongodb://localhost:27017/novacart
+
+### Production notes
+- Copy `.env.example` to `.env` and provide real credentials.
+- Set `JWT_SECRET`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET`.
+- Ensure `CORS_ORIGIN` matches the frontend origin.
+
+---
+
 ## 🧪 Demo Credentials
 
 ### Admin Account
