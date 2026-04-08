@@ -97,19 +97,19 @@ export default function Footer() {
               <li className="flex items-start gap-2">
                 <Mail size={18} className="text-primary-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400">support@novacart.com</p>
+                  <p className="text-gray-600 dark:text-gray-400">ankushchauhan4756@gmail.com</p>
                 </div>
               </li>
               <li className="flex items-start gap-2">
                 <Phone size={18} className="text-primary-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400">+91 9876 543 210</p>
+                  <p className="text-gray-600 dark:text-gray-400">7983684876</p>
                 </div>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin size={18} className="text-primary-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400">123 Commerce Street, Tech City</p>
+                  <p className="text-gray-600 dark:text-gray-400">Vijay Nagar, Ghaziabad</p>
                 </div>
               </li>
             </ul>
