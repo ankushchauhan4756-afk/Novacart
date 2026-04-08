@@ -25,7 +25,11 @@ export const config = {
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
 
   // CORS
-  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  CORS_ORIGIN: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
+    : process.env.NODE_ENV === 'production'
+    ? ['https://novacart-1-224j.onrender.com']
+    : ['http://localhost:3000'],
 
   NODE_ENV: process.env.NODE_ENV || 'development',
 }
