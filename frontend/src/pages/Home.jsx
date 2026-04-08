@@ -3,21 +3,9 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, Zap, Truck, Shield, Award } from 'lucide-react'
 import ProductCard from '../components/ProductCard'
 import { productService } from '../services/api'
-import { generateProductImage } from '../utils/productImages'
+import { generateProductImage, PRODUCT_IMAGES } from '../utils/productImages'
 
-// Map product names to local downloaded images
-const PRODUCT_IMAGE_MAP = {
-  'Premium Wireless Headphones': '/images/products/headphones.webp',
-  'Cotton T-Shirt': '/images/products/tshirt.avif',
-  'Stylish Sunglasses': '/images/products/sunglasses.jpg',
-  'Fresh Apples - 1kg': '/images/products/apples.jpg',
-  'Smart Watch Pro': '/images/products/watch.webp',
-  'Designer Handbag': '/images/products/handbag.jpg',
-  'Blue Denim Jeans': '/images/products/jeans.webp',
-  'Organic Bananas - 1kg': '/images/products/bananas.jpg',
-  'Fresh Carrots - 1kg': '/images/products/carrots.png',
-  'Wireless Keyboard': '/images/products/keyboard.jpg',
-};
+const PRODUCT_IMAGE_MAP = PRODUCT_IMAGES
 
 const HERO_BANNERS = [
   {
@@ -76,7 +64,7 @@ const FEATURED_PRODUCTS = [
     originalPrice: 8999,
     rating: 4.5,
     reviews: 234,
-    image: '/images/products/keyboard.jpg',
+    image: PRODUCT_IMAGE_MAP['Premium Wireless Headphones'],
     category: 'tech-gadgets',
   },
   {
@@ -86,7 +74,7 @@ const FEATURED_PRODUCTS = [
     originalPrice: 1299,
     rating: 4,
     reviews: 145,
-    image: '/images/products/keyboard.jpg',
+    image: PRODUCT_IMAGE_MAP['Cotton T-Shirt'],
     category: 'clothes',
   },
   {
@@ -96,7 +84,7 @@ const FEATURED_PRODUCTS = [
     originalPrice: 5999,
     rating: 4.8,
     reviews: 312,
-    image: '/images/products/keyboard.jpg',
+    image: PRODUCT_IMAGE_MAP['Stylish Sunglasses'],
     category: 'fashion',
   },
   {
@@ -105,17 +93,17 @@ const FEATURED_PRODUCTS = [
     price: 199,
     rating: 4.2,
     reviews: 89,
-    image: '/images/products/apples.jpg',
+    image: PRODUCT_IMAGE_MAP['Fresh Apples - 1kg'],
     category: 'fruits',
   },
   {
     id: 5,
-    name: 'Smart Watch',
+    name: 'Smart Watch Pro',
     price: 9999,
     originalPrice: 14999,
     rating: 4.6,
     reviews: 423,
-    image: '/images/products/keyboard.jpg',
+    image: PRODUCT_IMAGE_MAP['Smart Watch Pro'],
     category: 'tech-gadgets',
   },
   {
@@ -125,7 +113,7 @@ const FEATURED_PRODUCTS = [
     originalPrice: 7999,
     rating: 4.7,
     reviews: 267,
-    image: '/images/products/keyboard.jpg',
+    image: PRODUCT_IMAGE_MAP['Designer Handbag'],
     category: 'fashion',
   },
   {
@@ -135,16 +123,16 @@ const FEATURED_PRODUCTS = [
     originalPrice: 3999,
     rating: 4.4,
     reviews: 198,
-    image: '/images/products/jeans.webp',
+    image: PRODUCT_IMAGE_MAP['Blue Denim Jeans'],
     category: 'clothes',
   },
   {
     id: 8,
-    name: 'Organic Banana - 1kg',
+    name: 'Organic Bananas - 1kg',
     price: 79,
     rating: 4.3,
     reviews: 112,
-    image: '/images/products/bananas.jpg',
+    image: PRODUCT_IMAGE_MAP['Organic Bananas - 1kg'],
     category: 'fruits',
   },
 ]
@@ -303,7 +291,7 @@ export default function Home() {
           </Link>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

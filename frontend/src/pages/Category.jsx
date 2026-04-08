@@ -3,21 +3,9 @@ import { useParams, Link } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import ProductCard from '../components/ProductCard'
 import { productService } from '../services/api'
-import { generateProductImage } from '../utils/productImages'
+import { generateProductImage, PRODUCT_IMAGES } from '../utils/productImages'
 
-// Map product names to local downloaded images
-const PRODUCT_IMAGE_MAP = {
-  'Premium Wireless Headphones': '/images/products/keyboard.jpg',
-  'Cotton T-Shirt': '/images/products/keyboard.jpg',
-  'Stylish Sunglasses': '/images/products/keyboard.jpg',
-  'Fresh Apples - 1kg': '/images/products/apples.jpg',
-  'Smart Watch Pro': '/images/products/keyboard.jpg',
-  'Designer Handbag': '/images/products/keyboard.jpg',
-  'Blue Denim Jeans': '/images/products/jeans.webp',
-  'Organic Bananas - 1kg': '/images/products/bananas.jpg',
-  'Fresh Carrots - 1kg': '/images/products/carrots.png',
-  'Wireless Keyboard': '/images/products/keyboard.jpg',
-};
+const PRODUCT_IMAGE_MAP = PRODUCT_IMAGES
 
 const CATEGORY_MAP = {
   'fashion': 'Fashion',
@@ -114,7 +102,7 @@ export default function Category() {
 
         {/* Products Grid */}
         {!loading && products.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {products.map(product => (
               <ProductCard key={product.id} product={product} />
             ))}

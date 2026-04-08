@@ -4,7 +4,7 @@ import { Star, ShoppingCart, Heart, ChevronUp, ChevronDown } from 'lucide-react'
 import { formatPrice, calculateDiscount } from '../utils/helpers'
 import { useStore } from '../store/useStore'
 import { productService } from '../services/api'
-import { generateProductImage } from '../utils/productImages'
+import { generateProductImage, PRODUCT_IMAGES } from '../utils/productImages'
 
 // Sample product data
 const SAMPLE_PRODUCTS = {
@@ -38,34 +38,17 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('description')
 
-  // Map product names to local downloaded images
-  const productImageMap = {
-    'Premium Wireless Headphones': '/images/products/headphones.webp',
-    'Cotton T-Shirt': '/images/products/tshirt.avif',
-    'Stylish Sunglasses': '/images/products/sunglasses.jpg',
-    'Fresh Apples - 1kg': '/images/products/apples.jpg',
-    'Smart Watch Pro': '/images/products/watch.webp',
-    'Designer Handbag': '/images/products/handbag.jpg',
-    'Blue Denim Jeans': '/images/products/jeans.webp',
-    'Organic Bananas - 1kg': '/images/products/bananas.jpg',
-    'Fresh Carrots - 1kg': '/images/products/carrots.png',
-    'Wireless Keyboard': '/images/products/keyboard.jpg',
-  };
-
   // Helper function to get proper image URL
   const getImageUrl = (imageField, productName) => {
-    // First check if we have a direct mapping for this product name
-    if (productImageMap[productName]) {
-      return productImageMap[productName];
+    if (imageField) {
+      return imageField
     }
 
-    // Then check if image is a full URL
-    if (imageField && imageField.startsWith('http')) {
-      return imageField;
+    if (PRODUCT_IMAGES[productName]) {
+      return PRODUCT_IMAGES[productName]
     }
 
-    // If no image field or it's a path, use fallback
-    return generateProductImage(productName);
+    return generateProductImage(productName)
   }
 
   useEffect(() => {

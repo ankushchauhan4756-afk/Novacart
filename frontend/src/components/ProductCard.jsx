@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { formatPrice, calculateDiscount } from '../utils/helpers'
-import { generateProductImage } from '../utils/productImages'
+import { generateProductImage, PRODUCT_IMAGES } from '../utils/productImages'
 import { Heart, ShoppingCart, Star } from 'lucide-react'
 
 export default function ProductCard({ product }) {
@@ -39,36 +39,17 @@ export default function ProductCard({ product }) {
     setUseFallback(true)
   }
 
-  // Map product names to local downloaded images
-  const productImageMap = {
-    'Premium Wireless Headphones': '/images/products/headphones.webp',
-    'Cotton T-Shirt': '/images/products/tshirt.avif',
-    'Stylish Sunglasses': '/images/products/sunglasses.jpg',
-    'Fresh Apples - 1kg': '/images/products/apples.jpg',
-    'Smart Watch Pro': '/images/products/watch.webp',
-    'Designer Handbag': '/images/products/handbag.jpg',
-    'Blue Denim Jeans': '/images/products/jeans.webp',
-    'Organic Bananas - 1kg': '/images/products/bananas.jpg',
-    'Fresh Carrots - 1kg': '/images/products/carrots.png',
-    'Wireless Keyboard': '/images/products/keyboard.jpg',
-  };
-
   // Get image URL with smart fallback logic
   const getImageUrl = () => {
     if (useFallback) {
-      // Use exact match or generic Unsplash image
-      return productImageMap[product.name] || generateProductImage(product.name);
+      return product.image || PRODUCT_IMAGES[product.name] || generateProductImage(product.name)
     }
 
     if (product.image) {
-      // If image starts with http, use it as-is (full URL from CDN or external service)
-      if (product.image.startsWith('http')) {
-        return product.image;
-      }
+      return product.image
     }
 
-    // Default fallback to real Unsplash image based on product name
-    return productImageMap[product.name] || generateProductImage(product.name);
+    return PRODUCT_IMAGES[product.name] || generateProductImage(product.name)
   }
   const imageUrl = getImageUrl()
 
@@ -78,7 +59,7 @@ export default function ProductCard({ product }) {
       className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden card-shadow cursor-pointer group h-full"
     >
       {/* Image */}
-      <div className="relative h-48 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+      <div className="relative h-44 sm:h-48 bg-gray-100 dark:bg-gray-700 overflow-hidden">
         {!imageLoaded && !imageError && (
           <div className="absolute inset-0 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 animate-pulse"></div>
         )}

@@ -115,7 +115,7 @@ export default function Navbar({ onMenuClick, menuOpen }) {
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-full flex items-center justify-center font-bold hover:shadow-lg transition"
               >
-                {user ? user.name[0].toUpperCase() : 'G'}
+                {user?.name?.[0]?.toUpperCase() || 'G'}
               </button>
 
               {isProfileOpen && (
