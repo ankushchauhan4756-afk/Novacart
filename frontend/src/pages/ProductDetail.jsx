@@ -36,6 +36,7 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1)
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('description')
 
   // Helper function to get proper image URL
@@ -76,24 +77,11 @@ export default function ProductDetail() {
         setProduct(formattedProduct)
       } catch (error) {
         console.error('Failed to fetch product:', error)
-        // Fallback to sample product with real image
-        const sampleProduct = SAMPLE_PRODUCTS[id] || {
-          id,
-          name: 'Premium Product',
-          price: 4999,
-          originalPrice: 8999,
-          rating: 4.5,
-          reviews: 234,
-          image: generateProductImage('Premium Product'),
-          category: 'tech-gadgets',
-          description: 'This is a premium quality product with excellent features.',
-          specs: {
-            'Material': 'Premium Quality',
-            'Warranty': '2 years',
-          },
-          inStock: true,
+        if (import.meta.env.DEV && SAMPLE_PRODUCTS[id]) {
+          setProduct(SAMPLE_PRODUCTS[id])
+        } else {
+          setError('Product could not be loaded. Please refresh or try another item.')
         }
-        setProduct(sampleProduct)
       } finally {
         setLoading(false)
       }
@@ -105,6 +93,20 @@ export default function ProductDetail() {
     return (
       <div className="section-container py-12">
         <div className="animate-shimmer h-96 rounded-lg"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="section-container py-12 text-center">
+        <div className="max-w-xl mx-auto bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-6 rounded-xl">
+          <h2 className="text-2xl font-semibold mb-2">Unable to load product</h2>
+          <p className="mb-4">{error}</p>
+          <Link to="/" className="btn-primary inline-flex items-center justify-center">
+            Back to Home
+          </Link>
+        </div>
       </div>
     )
   }
