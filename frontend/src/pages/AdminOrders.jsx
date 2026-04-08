@@ -11,6 +11,7 @@ export default function AdminOrders() {
   const [selectedDeliveryBoy, setSelectedDeliveryBoy] = useState(null)
   const [notifications, setNotifications] = useState([])
   const [fetchError, setFetchError] = useState('')
+  const [statusUpdating, setStatusUpdating] = useState(false)
   const { user } = useStore()
 
   const statusStages = ['pending', 'confirmed', 'processing', 'shipped', 'delivered']
@@ -55,13 +56,16 @@ export default function AdminOrders() {
 
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
+      setStatusUpdating(true)
       await orderService.updateOrderStatus(orderId, newStatus)
       showNotification(`Order updated to ${newStatus}`, 'success')
-      fetchOrders()
+      await fetchOrders()
       setSelectedOrder(null)
     } catch (error) {
       console.error('Failed to update order:', error)
       showNotification('Failed to update order', 'error')
+    } finally {
+      setStatusUpdating(false)
     }
   }
 
@@ -367,21 +371,14 @@ export default function AdminOrders() {
                   {getNextStatuses(selectedOrder.orderStatus).map(status => (
                     <button
                       key={status}
-                      onClick={() =>
-                        handleStatusUpdate(selectedOrder._id, status)
-                      }
-                      className="w-full px-4 py-2 text-left bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg capitalize font-semibold transition"
-                    >
-                      {status}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                Assign Delivery Boy
+                            type="button"
+                            onClick={() =>
+                              handleStatusUpdate(selectedOrder._id, status)
+                            }
+                            disabled={statusUpdating}
+                            className={`w-full px-4 py-2 text-left rounded-lg capitalize font-semibold transition ${statusUpdating ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                          >
+                            {statusUpdating ? 'Updating...' : status}
               </p>
               <div className="space-y-2">
                 <select
