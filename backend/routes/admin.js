@@ -216,10 +216,9 @@ router.get('/orders', verifyToken, async (req, res) => {
     console.log('Orders found from DB:', orders.length)
     console.log('First order sample:', orders[0])
 
-    // Manually populate user, product, and delivery boy data
     const populatedOrders = await Promise.all(
       orders.map(async (order) => {
-        const user = mongoose.isValidObjectId(order.user)
+        const user = order.user && mongoose.isValidObjectId(order.user)
           ? await User.findById(order.user).select('name email phone').lean()
           : null
 
@@ -227,15 +226,34 @@ router.get('/orders', verifyToken, async (req, res) => {
           ? await User.findById(order.deliveryBoy).select('name email phone').lean()
           : null
 
+        const items = Array.isArray(order.items) ? order.items : []
+
         const itemsWithProducts = await Promise.all(
-          order.items.map(async (item) => {
-            let product = null
-            if (mongoose.isValidObjectId(item.product)) {
-              product = await Product.findById(item.product).select('name price').lean()
-            }
-            return {
-              ...item,
-              product: product || { id: item.product, name: 'Unknown product', price: item.price || 0 },
+          items.map(async (item) => {
+            try {
+              let product = null
+              if (item?.product && mongoose.isValidObjectId(item.product)) {
+                product = await Product.findById(item.product).select('name price').lean()
+              }
+
+              return {
+                ...item,
+                product: product || {
+                  id: item?.product,
+                  name: 'Unknown product',
+                  price: item?.price || 0,
+                },
+              }
+            } catch (innerError) {
+              console.error('Order item population error:', innerError)
+              return {
+                ...item,
+                product: {
+                  id: item?.product,
+                  name: 'Unknown product',
+                  price: item?.price || 0,
+                },
+              }
             }
           })
         )
