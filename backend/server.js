@@ -6,6 +6,7 @@ import { Server } from 'socket.io'
 import { fileURLToPath } from 'url'
 import { config } from './config/config.js'
 import { connectDB } from './config/database.js'
+import { initializeData } from './config/initData.js'
 import authRoutes from './routes/auth.js'
 import productRoutes from './routes/products.js'
 import orderRoutes from './routes/orders.js'
@@ -107,7 +108,8 @@ io.on('connection', (socket) => {
 async function start() {
   try {
     await connectDB()
-    
+    await initializeData()
+
     server.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`)
       console.log(`Environment: ${config.NODE_ENV}`)
