@@ -50,6 +50,18 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('[API] Response error:', error.response?.data || error.message)
+
+    const status = error.response?.status
+    const message = error.response?.data?.message
+    if (
+      status === 401 &&
+      ['Invalid token', 'No token provided', 'Session expired. Please sign in again.'].includes(message)
+    ) {
+      localStorage.removeItem('token')
+      useStore.getState().setToken(null)
+      useStore.getState().setUser(null)
+    }
+
     return Promise.reject(error)
   }
 )

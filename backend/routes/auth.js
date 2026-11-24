@@ -126,7 +126,10 @@ router.get('/verify', (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET)
     res.json({ valid: true, user: decoded })
   } catch (error) {
-    res.status(401).json({ message: 'Invalid token' })
+    const message = error.name === 'TokenExpiredError'
+      ? 'Session expired. Please sign in again.'
+      : 'Invalid token'
+    res.status(401).json({ message })
   }
 })
 
