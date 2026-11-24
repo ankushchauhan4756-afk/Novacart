@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useStore } from '../store/useStore'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.PROD ? '' : '/api')
 
@@ -8,15 +9,35 @@ const api = axios.create({
 
 console.log('[API] Base URL:', API_BASE)
 
+export const getStoredToken = () => {
+  const directToken = localStorage.getItem('token')
+  if (directToken) return directToken
+
+  const inMemoryToken = useStore.getState().token
+  if (inMemoryToken) {
+    localStorage.setItem('token', inMemoryToken)
+    return inMemoryToken
+  }
+
+  try {
+    const persistedStore = JSON.parse(localStorage.getItem('novacart-store') || '{}')
+    const persistedToken = persistedStore.state?.token
+    if (persistedToken) {
+      localStorage.setItem('token', persistedToken)
+      return persistedToken
+    }
+  } catch (error) {
+    console.warn('[API] Could not restore persisted authentication state:', error)
+  }
+
+  return null
+}
+
 // Add token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  console.log('[API] Token from localStorage:', token)
+  const token = getStoredToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
-    console.log('[API] Set Authorization header:', config.headers.Authorization)
-  } else {
-    console.log('[API] No token found in localStorage')
   }
   return config
 }, (error) => {
@@ -192,12 +213,28 @@ export const orderService = {
 // Payment Service
 export const paymentService = {
   createOrder: async (amount, currency = 'INR', receipt) => {
-    const { data } = await api.post('/payments/create-order', { amount, currency, receipt })
+    const token = getStoredToken()
+    if (!token) {
+      throw new Error('Your session has expired. Please sign in again before paying.')
+    }
+
+    const headers = { Authorization: `Bearer ${token}` }
+    const { data } = await api.post(
+      '/payments/create-order',
+      { amount, currency, receipt },
+      { headers }
+    )
     return data
   },
 
   verifyPayment: async (paymentData) => {
-    const { data } = await api.post('/payments/verify', paymentData)
+    const token = getStoredToken()
+    if (!token) {
+      throw new Error('Your session has expired. Please sign in again before paying.')
+    }
+
+    const headers = { Authorization: `Bearer ${token}` }
+    const { data } = await api.post('/payments/verify', paymentData, { headers })
     return data
   },
 
